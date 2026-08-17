@@ -1,0 +1,210 @@
+:root {
+  color-scheme: dark;
+  --bg: #0a0a0a;
+  --fg: #f5f5f7;
+  --muted: #8e8e93;
+  --accent: #34c759; /* vert "santé" iOS, cohérent avec un podomètre */
+  --danger: #ff3b30;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+body {
+  /* On occupe toujours la hauteur d'écran, sans scroll, comme une app. */
+  display: flex;
+  min-height: 100dvh;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ---------- Layout ---------- */
+
+.app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) 1.5rem env(safe-area-inset-bottom);
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 0;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.date {
+  color: var(--muted);
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+}
+
+.steps {
+  font-size: clamp(4rem, 22vw, 7rem);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  margin: 0.5rem 0;
+}
+
+.big-number {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 28ch;
+}
+
+.muted.small {
+  font-size: 0.8rem;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  word-break: break-word;
+}
+
+/* ---------- Anneau de progression ---------- */
+
+.ring-wrapper {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  color: var(--accent);
+  margin: 1rem 0;
+}
+
+.ring {
+  display: block;
+}
+
+.ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Boutons ---------- */
+
+.footer {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0 1.5rem;
+}
+
+.refresh {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg);
+  border: none;
+  border-radius: 999px;
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.25rem;
+  transition: transform 150ms ease, background 150ms ease;
+}
+
+.refresh:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.refresh:active {
+  transform: scale(0.95);
+}
+
+.primary {
+  background: var(--accent);
+  color: #001a05;
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.primary:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
