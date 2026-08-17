@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
+  <rect width="192" height="192" rx="42" fill="#0a0a0a"/>
+  <!-- Pied stylisé, comme un emoji de marche -->
+  <g fill="#34c759">
+    <path d="M64 56c-8 0-14 6-14 14 0 5 3 10 7 12l-3 14c-2 9 5 18 14 18h6c5 0 9-4 9-9v-12l5-7c3-4 4-9 4-14 0-9-7-16-16-16h-12z"/>
+    <path d="M120 92c-6 0-11 5-11 11 0 4 2 8 5 10l-2 11c-2 7 4 14 11 14h4c4 0 7-3 7-7v-9l4-5c2-3 3-7 3-11 0-7-6-14-13-14h-8z"/>
+  </g>
+  <!-- Petite trace de pas -->
+  <g fill="#f5f5f7" opacity="0.25">
+    <circle cx="36" cy="40" r="4"/>
+    <circle cx="156" cy="156" r="4"/>
+    <circle cx="156" cy="40" r="3"/>
+    <circle cx="36" cy="156" r="3"/>
+  </g>
+</svg>
