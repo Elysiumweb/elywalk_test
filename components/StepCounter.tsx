@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  type HealthDataPoint,
+  fetchTodaySteps,
   formatSteps,
-  getTodayRange,
-  isMedianBridgeAvailable,
-} from "@/lib/median";
+  isNativeHealthAvailable,
+  openHealthSettings,
+  requestStepsPermission,
+} from "@/lib/health";
 
 type Status =
-  | "loading" // au démarrage : on vérifie le bridge
-  | "needs-bridge" // pas dans Median (web preview, navigateur…)
+  | "loading" // au démarrage : on vérifie la plateforme
+  | "needs-native" // navigateur web, pas l'APK Capacitor
   | "requesting" // on demande la permission
   | "denied" // permission refusée
   | "ready"; // on a les pas
@@ -24,58 +25,42 @@ export function StepCounter() {
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchTodaySteps = useCallback(async (): Promise<number> => {
-    if (!isMedianBridgeAvailable()) {
-      throw new Error("Bridge Median indisponible.");
+  const loadSteps = useCallback(async (): Promise<number> => {
+    if (!isNativeHealthAvailable()) {
+      throw new Error("API santé native indisponible.");
     }
-    const { startDate, endDate } = getTodayRange();
-    const response = await window.median!.healthBridge!.getData({
-      dataTypes: ["steps"],
-      startDate,
-      endDate,
-      bucket: "day",
-    });
-
-    const points: HealthDataPoint[] = response.data.steps ?? [];
-    // Le bucket "day" renvoie un point par jour. On additionne par sécurité
-    // (au cas où le téléphone a changé de fuseau ou si l'OS split en plusieurs).
-    const total = points.reduce((acc, p) => acc + (p.value ?? 0), 0);
-    return total;
+    return fetchTodaySteps();
   }, []);
 
   const startPolling = useCallback(() => {
     if (intervalRef.current) return;
     intervalRef.current = setInterval(async () => {
       try {
-        const value = await fetchTodaySteps();
+        const value = await loadSteps();
         setSteps(value);
         setLastUpdated(new Date());
       } catch {
         // silencieux : une erreur ponctuelle ne doit pas spammer l'UI
       }
     }, REFRESH_INTERVAL_MS);
-  }, [fetchTodaySteps]);
+  }, [loadSteps]);
 
   const init = useCallback(async () => {
-    if (!isMedianBridgeAvailable()) {
-      setStatus("needs-bridge");
+    if (!isNativeHealthAvailable()) {
+      setStatus("needs-native");
       return;
     }
 
     setStatus("requesting");
+    setError(null);
     try {
-      const result = await window.median!.healthBridge!.requestPermissions([
-        "steps",
-      ]);
-
-      // Sur iOS, requestPermissions ne renvoie pas d'info : on tente directement.
-      // Sur Android, on a granted / declined.
-      if (result && Array.isArray(result.granted) && result.granted.length === 0) {
+      const granted = await requestStepsPermission();
+      if (!granted) {
         setStatus("denied");
         return;
       }
 
-      const value = await fetchTodaySteps();
+      const value = await loadSteps();
       setSteps(value);
       setLastUpdated(new Date());
       setStatus("ready");
@@ -84,7 +69,7 @@ export function StepCounter() {
       setError(err instanceof Error ? err.message : "Erreur inconnue.");
       setStatus("denied");
     }
-  }, [fetchTodaySteps, startPolling]);
+  }, [loadSteps, startPolling]);
 
   useEffect(() => {
     init();
@@ -97,15 +82,23 @@ export function StepCounter() {
     <main className="app">
       <header className="header">
         <span className="brand">elywalk</span>
-        <span className="date">{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
+        <span className="date">
+          {new Date().toLocaleDateString("fr-FR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+        </span>
       </header>
 
       <section className="content">
         {status === "loading" && <LoadingState />}
-        {status === "needs-bridge" && <NeedsBridgeState />}
+        {status === "needs-native" && <NeedsNativeState />}
         {status === "requesting" && <RequestingState />}
         {status === "denied" && <DeniedState error={error} onRetry={init} />}
-        {status === "ready" && <ReadyState steps={steps} lastUpdated={lastUpdated} />}
+        {status === "ready" && (
+          <ReadyState steps={steps} lastUpdated={lastUpdated} />
+        )}
       </section>
 
       <footer className="footer">
@@ -114,7 +107,7 @@ export function StepCounter() {
           className="refresh"
           onClick={async () => {
             try {
-              const value = await fetchTodaySteps();
+              const value = await loadSteps();
               setSteps(value);
               setLastUpdated(new Date());
             } catch (err) {
@@ -138,15 +131,14 @@ function LoadingState() {
   );
 }
 
-function NeedsBridgeState() {
+function NeedsNativeState() {
   return (
     <div className="state">
       <h1 className="big-number">🚶</h1>
       <p className="title">elywalk a besoin de l’app native</p>
       <p className="muted">
-        Ce site est conçu pour être ouvert dans l’application mobile compilée via
-        <a href="https://median.co" target="_blank" rel="noreferrer"> Median.co</a>,
-        qui seule peut accéder au podomètre (HealthKit / Google Health Connect).
+        Ce site lit les pas via Health Connect (Android) / HealthKit (iOS).
+        Ouvre l’APK Capacitor sur ton téléphone pour voir ton compteur.
       </p>
     </div>
   );
@@ -165,25 +157,44 @@ function RequestingState() {
   );
 }
 
-function DeniedState({ error, onRetry }: { error: string | null; onRetry: () => void }) {
+function DeniedState({
+  error,
+  onRetry,
+}: {
+  error: string | null;
+  onRetry: () => void;
+}) {
   return (
     <div className="state">
       <h1 className="big-number">⚠️</h1>
       <p className="title">Accès refusé</p>
       <p className="muted">
         Sans la permission d’accès aux données de pas, l’app ne peut pas
-        fonctionner. Tu peux la réactiver dans les réglages de ton téléphone
-        (Santé sur iOS, Health Connect sur Android).
+        fonctionner. Tu peux la réactiver dans les réglages (Santé sur iOS,
+        Health Connect sur Android).
       </p>
       {error && <p className="error">{error}</p>}
       <button type="button" className="primary" onClick={onRetry}>
         Réessayer
       </button>
+      <button
+        type="button"
+        className="secondary"
+        onClick={() => openHealthSettings()}
+      >
+        Ouvrir Health Connect
+      </button>
     </div>
   );
 }
 
-function ReadyState({ steps, lastUpdated }: { steps: number; lastUpdated: Date | null }) {
+function ReadyState({
+  steps,
+  lastUpdated,
+}: {
+  steps: number;
+  lastUpdated: Date | null;
+}) {
   return (
     <div className="state">
       <p className="label">Pas aujourd’hui</p>
@@ -191,7 +202,10 @@ function ReadyState({ steps, lastUpdated }: { steps: number; lastUpdated: Date |
       <ProgressRing value={steps} />
       <p className="muted small">
         {lastUpdated
-          ? `Mis à jour à ${lastUpdated.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+          ? `Mis à jour à ${lastUpdated.toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}`
           : "En attente de données…"}
       </p>
     </div>

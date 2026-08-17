@@ -1,21 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // On garde le build simple : pas d'images distantes, pas de revalidation exotique.
   poweredByHeader: false,
-  // Permet à Median.co et à WebView iOS/Android de fonctionner sans surprises CSP
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-        ],
-      },
-    ];
+  // Export statique pour Capacitor (WebView charge /out).
+  output: "export",
+  images: {
+    unoptimized: true,
   },
+  // trailingSlash aide certains WebViews à résoudre les assets correctement.
+  trailingSlash: true,
 };
 
 export default nextConfig;
